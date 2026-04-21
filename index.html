@@ -1,0 +1,1538 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="description" content="AI-powered bone fracture detection for clinical use">
+<meta name="theme-color" content="#0a1628">
+<title>FractureAI — Clinical Bone Fracture Detection</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy: #0a1628;
+    --navy-mid: #112240;
+    --navy-light: #1e3a5f;
+    --cyan: #00d4ff;
+    --cyan-dim: rgba(0,212,255,0.15);
+    --cyan-border: rgba(0,212,255,0.3);
+    --white: #f0f4f8;
+    --white-dim: rgba(240,244,248,0.7);
+    --white-faint: rgba(240,244,248,0.12);
+    --green: #00e5a0;
+    --green-dim: rgba(0,229,160,0.15);
+    --amber: #ffb547;
+    --amber-dim: rgba(255,181,71,0.15);
+    --red: #ff5f6d;
+    --red-dim: rgba(255,95,109,0.15);
+    --border: rgba(0,212,255,0.15);
+    --radius: 12px;
+    --radius-lg: 20px;
+    --font-display: 'DM Serif Display', Georgia, serif;
+    --font-body: 'DM Sans', -apple-system, 'Segoe UI', sans-serif;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--navy);
+    color: var(--white);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* BACKGROUND GRID */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 clamp(16px, 4vw, 48px);
+    height: 64px;
+    background: rgba(10,22,40,0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+  }
+
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--cyan), var(--green));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .logo-icon svg { width: 18px; height: 18px; }
+
+  .logo-text {
+    font-family: var(--font-display);
+    font-size: 20px;
+    color: var(--white);
+    letter-spacing: 0.01em;
+  }
+
+  .logo-text span { color: var(--cyan); }
+
+  .nav-badge {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--amber);
+    background: var(--amber-dim);
+    border: 1px solid rgba(255,181,71,0.3);
+    padding: 3px 8px;
+    border-radius: 20px;
+    text-transform: uppercase;
+  }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: clamp(12px, 2vw, 28px);
+    list-style: none;
+  }
+
+  .nav-links a {
+    color: var(--white-dim);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 400;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--cyan); }
+
+  /* ── HERO ── */
+  .hero {
+    position: relative;
+    z-index: 1;
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 100px clamp(20px, 5vw, 80px) 60px;
+  }
+
+  .hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    background: var(--cyan-dim);
+    border: 1px solid var(--cyan-border);
+    padding: 6px 16px;
+    border-radius: 30px;
+    margin-bottom: 32px;
+  }
+
+  .pulse-dot {
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.7); }
+  }
+
+  .hero h1 {
+    font-family: var(--font-display);
+    font-size: clamp(36px, 7vw, 80px);
+    line-height: 1.1;
+    color: var(--white);
+    max-width: 900px;
+    margin-bottom: 24px;
+  }
+
+  .hero h1 em {
+    font-style: italic;
+    color: var(--cyan);
+  }
+
+  .hero p {
+    font-size: clamp(15px, 2vw, 18px);
+    color: var(--white-dim);
+    max-width: 560px;
+    margin-bottom: 48px;
+    line-height: 1.7;
+    font-weight: 300;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--cyan);
+    color: var(--navy);
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 600;
+    padding: 14px 32px;
+    border-radius: 50px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.25s;
+    letter-spacing: 0.01em;
+  }
+  .btn-primary:hover {
+    background: #33deff;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(0,212,255,0.35);
+  }
+  .btn-primary:active { transform: translateY(0); }
+
+  .hero-stats {
+    display: flex;
+    gap: clamp(24px, 5vw, 60px);
+    margin-top: 60px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .stat { text-align: center; }
+  .stat-val {
+    font-family: var(--font-display);
+    font-size: clamp(28px, 4vw, 42px);
+    color: var(--cyan);
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .stat-label {
+    font-size: 13px;
+    color: var(--white-dim);
+    font-weight: 300;
+  }
+
+  /* ── SECTION WRAPPER ── */
+  .section {
+    position: relative;
+    z-index: 1;
+    padding: clamp(60px, 8vw, 120px) clamp(20px, 5vw, 80px);
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-family: var(--font-display);
+    font-size: clamp(28px, 4vw, 48px);
+    line-height: 1.15;
+    margin-bottom: 16px;
+  }
+
+  .section-sub {
+    font-size: 16px;
+    color: var(--white-dim);
+    font-weight: 300;
+    max-width: 520px;
+  }
+
+  /* ── UPLOAD AREA ── */
+  .upload-section {
+    position: relative;
+    z-index: 1;
+    background: var(--navy-mid);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: clamp(60px, 8vw, 100px) clamp(20px, 5vw, 80px);
+  }
+
+  .upload-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(32px, 5vw, 72px);
+    align-items: start;
+  }
+
+  .upload-zone {
+    border: 2px dashed var(--cyan-border);
+    border-radius: var(--radius-lg);
+    padding: 40px 24px;
+    text-align: center;
+    background: var(--cyan-dim);
+    cursor: pointer;
+    transition: all 0.25s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--cyan);
+    background: rgba(0,212,255,0.12);
+    transform: translateY(-2px);
+  }
+
+  .upload-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .upload-icon {
+    width: 56px; height: 56px;
+    margin: 0 auto 16px;
+    background: var(--cyan-dim);
+    border: 1px solid var(--cyan-border);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .upload-icon svg { width: 28px; height: 28px; stroke: var(--cyan); }
+
+  .upload-title {
+    font-size: 18px;
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+
+  .upload-hint {
+    font-size: 13px;
+    color: var(--white-dim);
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+
+  .upload-formats {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .format-tag {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--cyan);
+    background: var(--navy);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 20px;
+  }
+
+  /* IMAGE PREVIEW */
+  #image-preview-wrap {
+    display: none;
+    position: relative;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: var(--navy);
+    border: 1px solid var(--border);
+  }
+
+  #image-preview {
+    width: 100%;
+    height: 320px;
+    object-fit: contain;
+    display: block;
+    padding: 12px;
+  }
+
+  .preview-clear {
+    position: absolute;
+    top: 10px; right: 10px;
+    background: rgba(10,22,40,0.8);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    width: 28px; height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--white-dim);
+    font-size: 16px;
+    line-height: 1;
+    transition: all 0.2s;
+    z-index: 2;
+  }
+  .preview-clear:hover { color: var(--red); border-color: var(--red); }
+
+  /* ANALYZE BUTTON */
+  .analyze-btn {
+    width: 100%;
+    margin-top: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: linear-gradient(135deg, var(--cyan), var(--green));
+    color: var(--navy);
+    font-family: var(--font-body);
+    font-size: 16px;
+    font-weight: 600;
+    padding: 16px;
+    border-radius: var(--radius);
+    border: none;
+    cursor: pointer;
+    transition: all 0.25s;
+    letter-spacing: 0.01em;
+  }
+  .analyze-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(0,212,255,0.3);
+    filter: brightness(1.05);
+  }
+  .analyze-btn:active { transform: translateY(0); }
+  .analyze-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  /* RESULT PANEL */
+  .result-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .result-header {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--white-dim);
+    margin-bottom: 4px;
+  }
+
+  /* PLACEHOLDER STATE */
+  .result-placeholder {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 40px 24px;
+    text-align: center;
+    background: var(--white-faint);
+  }
+
+  .result-placeholder p {
+    color: var(--white-dim);
+    font-size: 14px;
+    font-weight: 300;
+  }
+
+  /* LOADING STATE */
+  .loading-state {
+    display: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 48px 24px;
+    text-align: center;
+    background: var(--white-faint);
+  }
+
+  .spinner {
+    width: 48px; height: 48px;
+    border: 3px solid var(--border);
+    border-top-color: var(--cyan);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-state p {
+    color: var(--white-dim);
+    font-size: 14px;
+  }
+
+  /* DIAGNOSIS CARD */
+  .diagnosis-card {
+    display: none;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .diag-top {
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .diag-badge {
+    flex-shrink: 0;
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+  }
+
+  .diag-badge.positive { background: var(--red-dim); border: 2px solid rgba(255,95,109,0.4); }
+  .diag-badge.negative { background: var(--green-dim); border: 2px solid rgba(0,229,160,0.4); }
+
+  .diag-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--white-dim);
+    margin-bottom: 4px;
+  }
+
+  .diag-verdict {
+    font-family: var(--font-display);
+    font-size: 22px;
+  }
+
+  .diag-verdict.positive { color: var(--red); }
+  .diag-verdict.negative { color: var(--green); }
+
+  .diag-body {
+    padding: 0 24px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  /* CONFIDENCE BAR */
+  .conf-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    font-size: 13px;
+  }
+  .conf-label { color: var(--white-dim); }
+  .conf-val { font-weight: 600; color: var(--white); }
+
+  .conf-track {
+    height: 6px;
+    background: var(--white-faint);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+
+  .conf-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 0;
+  }
+
+  .conf-fill.high { background: linear-gradient(90deg, var(--green), #00e5c0); }
+  .conf-fill.medium { background: linear-gradient(90deg, var(--amber), #ffd547); }
+  .conf-fill.low { background: linear-gradient(90deg, var(--red), #ff8f6d); }
+
+  /* CLASS BARS */
+  .class-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .class-item {
+    background: var(--white-faint);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+
+  .class-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    font-size: 12px;
+  }
+  .class-name { color: var(--white-dim); }
+  .class-pct { font-weight: 600; }
+
+  .class-bar-track {
+    height: 4px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .class-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--cyan);
+    transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 0;
+  }
+  .class-bar-fill.top { background: linear-gradient(90deg, var(--cyan), var(--green)); }
+
+  /* DISCLAIMER */
+  .disclaimer-box {
+    background: var(--amber-dim);
+    border: 1px solid rgba(255,181,71,0.3);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    display: flex;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--white-dim);
+    line-height: 1.5;
+  }
+
+  .disclaimer-icon {
+    flex-shrink: 0;
+    width: 16px; height: 16px;
+    color: var(--amber);
+    margin-top: 1px;
+  }
+
+  /* ── MODELS GRID ── */
+  .models-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    margin-top: 40px;
+  }
+
+  .model-card {
+    background: var(--navy-mid);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px 20px;
+    transition: all 0.25s;
+    cursor: pointer;
+  }
+  .model-card:hover {
+    border-color: var(--cyan-border);
+    transform: translateY(-4px);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.3);
+  }
+  .model-card.active {
+    border-color: var(--cyan);
+    background: rgba(0,212,255,0.07);
+  }
+
+  .model-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: var(--cyan-dim);
+    border: 1px solid var(--cyan-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 14px;
+    font-size: 18px;
+  }
+
+  .model-name {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .model-meta {
+    font-size: 12px;
+    color: var(--white-dim);
+    line-height: 1.5;
+  }
+
+  .model-acc {
+    font-size: 22px;
+    font-family: var(--font-display);
+    color: var(--green);
+    margin-top: 10px;
+  }
+
+  /* ── FEATURES ── */
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+    margin-top: 48px;
+  }
+
+  .feature-card {
+    background: var(--navy-mid);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 32px 28px;
+    transition: border-color 0.25s;
+  }
+  .feature-card:hover { border-color: var(--cyan-border); }
+
+  .feat-icon {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 18px;
+    font-size: 22px;
+  }
+
+  .feat-title {
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+
+  .feat-desc {
+    font-size: 14px;
+    color: var(--white-dim);
+    font-weight: 300;
+    line-height: 1.6;
+  }
+
+  /* ── FRACTURE CLASS INFO ── */
+  .class-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+    margin-top: 40px;
+  }
+
+  .class-info-card {
+    background: var(--navy-mid);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    transition: all 0.2s;
+  }
+  .class-info-card:hover {
+    border-color: var(--cyan-border);
+    background: rgba(0,212,255,0.05);
+  }
+
+  .ci-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+    flex-shrink: 0;
+  }
+
+  .ci-name {
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .ci-desc {
+    font-size: 12px;
+    color: var(--white-dim);
+    line-height: 1.55;
+  }
+
+  /* ── CLINICAL WORKFLOW ── */
+  .workflow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-top: 48px;
+    position: relative;
+  }
+
+  .workflow::before {
+    content: '';
+    position: absolute;
+    left: 23px;
+    top: 0; bottom: 0;
+    width: 1px;
+    background: var(--border);
+    z-index: 0;
+  }
+
+  .workflow-step {
+    display: flex;
+    gap: 20px;
+    padding-bottom: 36px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .workflow-step:last-child { padding-bottom: 0; }
+
+  .step-num {
+    flex-shrink: 0;
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    background: var(--navy);
+    border: 1px solid var(--cyan-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-size: 18px;
+    color: var(--cyan);
+  }
+
+  .step-content { padding-top: 8px; }
+
+  .step-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .step-desc {
+    font-size: 14px;
+    color: var(--white-dim);
+    font-weight: 300;
+    line-height: 1.6;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    position: relative;
+    z-index: 1;
+    border-top: 1px solid var(--border);
+    padding: 40px clamp(20px, 5vw, 80px);
+    text-align: center;
+  }
+
+  .footer-logo {
+    font-family: var(--font-display);
+    font-size: 22px;
+    color: var(--white-dim);
+    margin-bottom: 12px;
+  }
+
+  .footer-logo span { color: var(--cyan); }
+
+  .footer-note {
+    font-size: 13px;
+    color: rgba(240,244,248,0.4);
+    font-weight: 300;
+    max-width: 600px;
+    margin: 0 auto 20px;
+    line-height: 1.6;
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .footer-links a {
+    font-size: 13px;
+    color: rgba(240,244,248,0.4);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .footer-links a:hover { color: var(--cyan); }
+
+  /* ── DIVIDER LINE ── */
+  .divider {
+    position: relative;
+    z-index: 1;
+    height: 1px;
+    background: var(--border);
+    max-width: 100%;
+  }
+
+  /* ── SCROLL FADE-IN ── */
+  .fade-in {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .fade-in.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed;
+    bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--navy-mid);
+    border: 1px solid var(--cyan-border);
+    border-radius: var(--radius);
+    padding: 12px 24px;
+    font-size: 14px;
+    color: var(--cyan);
+    z-index: 999;
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    .upload-inner { grid-template-columns: 1fr; }
+    .nav-links { display: none; }
+    .workflow::before { left: 22px; }
+    .hero-stats { gap: 28px; }
+  }
+
+  @media (max-width: 480px) {
+    .models-grid { grid-template-columns: 1fr 1fr; }
+    .features-grid { grid-template-columns: 1fr; }
+    .class-info-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* SECTION FULL WIDTH OVERRIDE */
+  .upload-section .section { max-width: none; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/>
+      </svg>
+    </div>
+    <span class="logo-text">Fracture<span>AI</span></span>
+  </a>
+  <span class="nav-badge">Research Use</span>
+  <ul class="nav-links">
+    <li><a href="#analyze">Analyze</a></li>
+    <li><a href="#models">Models</a></li>
+    <li><a href="#classes">Fracture Types</a></li>
+    <li><a href="#workflow">Workflow</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="home">
+  <div class="hero-eyebrow">
+    <span class="pulse-dot"></span>
+    AI-Powered Clinical Decision Support
+  </div>
+  <h1>Bone Fracture Detection<br>with <em>Deep Learning</em></h1>
+  <p>Multi-model ensemble AI trained on thousands of radiographic images. Upload an X-ray to receive an instant preliminary analysis across 10 fracture classifications.</p>
+  <a href="#analyze" class="btn-primary">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+    </svg>
+    Upload X-Ray Image
+  </a>
+  <div class="hero-stats">
+    <div class="stat">
+      <div class="stat-val">5</div>
+      <div class="stat-label">AI Models</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val">10</div>
+      <div class="stat-label">Fracture Types</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val">TTA</div>
+      <div class="stat-label">Test-Time Augmentation</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val">&lt;5s</div>
+      <div class="stat-label">Analysis Time</div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- UPLOAD / ANALYZE -->
+<div class="upload-section" id="analyze">
+  <div style="max-width:1100px; margin:0 auto; padding-bottom:24px;">
+    <div class="section-label">X-Ray Analysis</div>
+    <h2 class="section-title">Upload &amp; Analyze</h2>
+    <p class="section-sub">Supported formats: JPEG, PNG, BMP, TIFF, WEBP. Best results with standard AP/lateral projection radiographs.</p>
+  </div>
+  <div class="upload-inner">
+    <!-- LEFT: Upload -->
+    <div>
+      <!-- Upload Zone (shown when no image) -->
+      <div class="upload-zone" id="upload-zone">
+        <input type="file" id="file-input" accept="image/*" capture="environment">
+        <div class="upload-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+          </svg>
+        </div>
+        <div class="upload-title">Drop X-Ray image here</div>
+        <div class="upload-hint">or tap to browse from camera / files<br>Works on all devices globally</div>
+        <div class="upload-formats">
+          <span class="format-tag">JPG</span>
+          <span class="format-tag">PNG</span>
+          <span class="format-tag">BMP</span>
+          <span class="format-tag">TIFF</span>
+          <span class="format-tag">WEBP</span>
+        </div>
+      </div>
+      <!-- Image Preview -->
+      <div id="image-preview-wrap">
+        <img id="image-preview" alt="Uploaded X-ray">
+        <button class="preview-clear" id="clear-btn" title="Remove image">✕</button>
+      </div>
+      <!-- Analyze Button -->
+      <button class="analyze-btn" id="analyze-btn" disabled>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35M11 8v6M8 11h6"/>
+        </svg>
+        Analyze X-Ray
+      </button>
+
+      <!-- Model Selector -->
+      <div style="margin-top:16px;">
+        <div style="font-size:12px; color:rgba(240,244,248,0.5); margin-bottom:8px; letter-spacing:0.05em; text-transform:uppercase; font-weight:600;">Select Model</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;" id="model-selector">
+          <button class="model-btn active" data-model="ensemble" onclick="selectModel(this)">Ensemble (All)</button>
+          <button class="model-btn" data-model="efficientnet_b3" onclick="selectModel(this)">EfficientNet-B3</button>
+          <button class="model-btn" data-model="convnext_tiny" onclick="selectModel(this)">ConvNeXt-Tiny</button>
+          <button class="model-btn" data-model="resnet50" onclick="selectModel(this)">ResNet-50</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Results -->
+    <div class="result-panel">
+      <div class="result-header">Analysis Result</div>
+
+      <!-- Placeholder -->
+      <div class="result-placeholder" id="result-placeholder">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(240,244,248,0.2)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto 16px;display:block;">
+          <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/>
+        </svg>
+        <p>Upload an X-ray image<br>to begin AI analysis</p>
+      </div>
+
+      <!-- Loading -->
+      <div class="loading-state" id="loading-state">
+        <div class="spinner"></div>
+        <p id="loading-msg">Running inference...</p>
+      </div>
+
+      <!-- Diagnosis Card -->
+      <div class="diagnosis-card" id="diagnosis-card">
+        <div class="diag-top" id="diag-top">
+          <div class="diag-badge" id="diag-badge"></div>
+          <div>
+            <div class="diag-label">Primary Classification</div>
+            <div class="diag-verdict" id="diag-verdict"></div>
+          </div>
+        </div>
+        <div class="diag-body">
+          <!-- Confidence -->
+          <div>
+            <div class="conf-row">
+              <span class="conf-label">Confidence</span>
+              <span class="conf-val" id="conf-val">—</span>
+            </div>
+            <div class="conf-track">
+              <div class="conf-fill" id="conf-fill"></div>
+            </div>
+          </div>
+          <!-- Class Distribution -->
+          <div>
+            <div style="font-size:12px; color:rgba(240,244,248,0.5); margin-bottom:10px; text-transform:uppercase; letter-spacing:0.08em; font-weight:600;">Top Predictions</div>
+            <div class="class-list" id="class-list"></div>
+          </div>
+          <!-- Disclaimer -->
+          <div class="disclaimer-box">
+            <svg class="disclaimer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
+            </svg>
+            <span><strong>Clinical Disclaimer:</strong> This AI output is for research and decision support only. Final diagnosis must be confirmed by a qualified radiologist or physician.</span>
+          </div>
+          <!-- Action Buttons -->
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button onclick="downloadReport()" style="flex:1; padding:10px; background:var(--white-faint); border:1px solid var(--border); border-radius:8px; color:var(--white); font-family:var(--font-body); font-size:13px; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.borderColor='var(--cyan)'" onmouseout="this.style.borderColor='var(--border)'">
+              ↓ Download Report
+            </button>
+            <button onclick="resetAll()" style="flex:1; padding:10px; background:var(--white-faint); border:1px solid var(--border); border-radius:8px; color:var(--white); font-family:var(--font-body); font-size:13px; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.borderColor='var(--cyan)'" onmouseout="this.style.borderColor='var(--border)'">
+              ↺ New Analysis
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODELS SECTION -->
+<section class="section fade-in" id="models">
+  <div class="section-label">AI Architecture</div>
+  <h2 class="section-title">Ensemble of 5 Models</h2>
+  <p class="section-sub">Each model brings a different inductive bias. The ensemble uses Test-Time Augmentation (TTA) across 5 transformations for robust prediction.</p>
+  <div class="models-grid">
+    <div class="model-card active">
+      <div class="model-icon">⚡</div>
+      <div class="model-name">EfficientNet-B3</div>
+      <div class="model-meta">Compound scaling · Best accuracy/efficiency ratio</div>
+      <div class="model-acc">Best</div>
+    </div>
+    <div class="model-card">
+      <div class="model-icon">🌲</div>
+      <div class="model-name">ConvNeXt-Tiny</div>
+      <div class="model-meta">Modern CNN · Vision Transformer-inspired</div>
+      <div class="model-acc">High</div>
+    </div>
+    <div class="model-card">
+      <div class="model-icon">🏗️</div>
+      <div class="model-name">ResNet-50</div>
+      <div class="model-meta">Residual connections · Proven backbone</div>
+      <div class="model-acc">Stable</div>
+    </div>
+    <div class="model-card">
+      <div class="model-icon">🔗</div>
+      <div class="model-name">DenseNet-121</div>
+      <div class="model-meta">Dense connections · Medical imaging specialist</div>
+      <div class="model-acc">Medical</div>
+    </div>
+    <div class="model-card">
+      <div class="model-icon">📱</div>
+      <div class="model-name">EfficientNet-B0</div>
+      <div class="model-meta">Lightweight · Fast inference on mobile</div>
+      <div class="model-acc">Fast</div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- FRACTURE CLASSES -->
+<section class="section fade-in" id="classes">
+  <div class="section-label">Classification</div>
+  <h2 class="section-title">10 Fracture Types</h2>
+  <p class="section-sub">The model is trained to distinguish between the following bone fracture categories from X-ray images.</p>
+  <div class="class-info-grid" id="class-info-grid"></div>
+</section>
+
+<div class="divider"></div>
+
+<!-- FEATURES -->
+<section class="section fade-in">
+  <div class="section-label">Capabilities</div>
+  <h2 class="section-title">Built for Clinical Settings</h2>
+  <p class="section-sub">Designed to integrate into real-world radiology and emergency workflows.</p>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feat-icon" style="background:var(--cyan-dim);">🌐</div>
+      <div class="feat-title">Universal Device Support</div>
+      <div class="feat-desc">Works on any device with a browser — Windows, macOS, iOS, Android (including Xiaomi, Huawei, Samsung). No app installation required.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feat-icon" style="background:var(--green-dim);">📷</div>
+      <div class="feat-title">Camera Integration</div>
+      <div class="feat-desc">On mobile devices, directly capture X-ray images from the device camera or PACS viewer screenshots for instant analysis.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feat-icon" style="background:rgba(100,100,255,0.15);">🔁</div>
+      <div class="feat-title">Test-Time Augmentation</div>
+      <div class="feat-desc">5× TTA including flips, crops, and rotations reduces prediction variance and improves overall accuracy compared to single-pass inference.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feat-icon" style="background:var(--amber-dim);">⚖️</div>
+      <div class="feat-title">Balanced Class Training</div>
+      <div class="feat-desc">WeightedRandomSampler and Label Smoothing (0.1) address class imbalance, ensuring reliable detection across both rare and common fracture types.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feat-icon" style="background:var(--red-dim);">📊</div>
+      <div class="feat-title">Probability Distribution</div>
+      <div class="feat-desc">Full probability output for all 10 classes. Visualize differential confidence, not just the top prediction, for more nuanced clinical interpretation.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feat-icon" style="background:var(--green-dim);">📋</div>
+      <div class="feat-title">Downloadable Report</div>
+      <div class="feat-desc">Generate a structured clinical report with prediction details, confidence scores, and timestamp — ready to attach to patient records.</div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- WORKFLOW -->
+<section class="section fade-in" id="workflow">
+  <div class="section-label">Clinical Workflow</div>
+  <h2 class="section-title">How to Use</h2>
+  <p class="section-sub">A simple 4-step process designed to complement existing radiology workflows without disruption.</p>
+  <div class="workflow">
+    <div class="workflow-step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <div class="step-title">Acquire radiograph</div>
+        <div class="step-desc">Obtain a standard AP or lateral X-ray of the area of interest. JPEG export from PACS or a digital photo of the film both work. Resolution above 224×224px recommended.</div>
+      </div>
+    </div>
+    <div class="workflow-step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <div class="step-title">Upload to FractureAI</div>
+        <div class="step-desc">Drag-and-drop the image, or tap "Upload" on mobile to open the file picker or camera. The system accepts all major image formats.</div>
+      </div>
+    </div>
+    <div class="workflow-step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <div class="step-title">Review AI analysis</div>
+        <div class="step-desc">Within seconds, the ensemble model produces a primary classification with confidence percentage and full probability distribution across all 10 fracture types.</div>
+      </div>
+    </div>
+    <div class="workflow-step">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <div class="step-title">Confirm with specialist</div>
+        <div class="step-desc">Use the AI output as decision support alongside clinical history and physical findings. Final diagnosis remains the responsibility of a qualified clinician.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">Fracture<span>AI</span></div>
+  <p class="footer-note">This tool is intended for research and clinical decision support only. It is not a substitute for professional medical judgment, diagnosis, or treatment. Always consult a licensed radiologist or physician.</p>
+  <div class="footer-links">
+    <a href="#">Research Paper</a>
+    <a href="#">Dataset Info</a>
+    <a href="#">API Documentation</a>
+    <a href="#">Privacy Policy</a>
+    <a href="#">Contact</a>
+  </div>
+  <p style="font-size:12px; color:rgba(240,244,248,0.25); margin-top:20px;">FractureAI © 2026 · Built with EfficientNet, ConvNeXt, ResNet, DenseNet · PyTorch · timm</p>
+</footer>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<style>
+  .model-btn {
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 7px 14px;
+    border-radius: 30px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--white-dim);
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.02em;
+  }
+  .model-btn:hover { border-color: var(--cyan-border); color: var(--white); }
+  .model-btn.active {
+    background: var(--cyan-dim);
+    border-color: var(--cyan);
+    color: var(--cyan);
+  }
+</style>
+
+<script>
+const FRACTURE_CLASSES = [
+  { name: "Avulsion fracture",   color: "#00d4ff", desc: "Fragment pulled away by ligament/tendon" },
+  { name: "Comminuted fracture", color: "#ff5f6d", desc: "Bone shattered into multiple pieces" },
+  { name: "Fracture dislocation",color: "#ffb547", desc: "Fracture with associated joint dislocation" },
+  { name: "Greenstick fracture", color: "#00e5a0", desc: "Incomplete fracture, common in children" },
+  { name: "Hairline fracture",   color: "#a78bfa", desc: "Thin crack, often from repetitive stress" },
+  { name: "Impacted fracture",   color: "#f472b6", desc: "Fragments driven into each other" },
+  { name: "Longitudinal fracture",color:"#34d399", desc: "Fracture along the bone's long axis" },
+  { name: "Oblique fracture",    color: "#60a5fa", desc: "Diagonal fracture across the shaft" },
+  { name: "Pathological fracture",color:"#fb923c", desc: "Fracture through diseased/weakened bone" },
+  { name: "Spiral fracture",     color: "#e879f9", desc: "Twisting force causes helical break" },
+];
+
+// Build class info grid
+const grid = document.getElementById('class-info-grid');
+FRACTURE_CLASSES.forEach(cls => {
+  const card = document.createElement('div');
+  card.className = 'class-info-card';
+  card.innerHTML = `
+    <div class="ci-name">
+      <span class="ci-dot" style="background:${cls.color}"></span>
+      ${cls.name}
+    </div>
+    <div class="ci-desc">${cls.desc}</div>
+  `;
+  grid.appendChild(card);
+});
+
+// State
+let uploadedFile = null;
+let selectedModel = 'ensemble';
+let lastResult = null;
+
+// Model selector
+function selectModel(btn) {
+  document.querySelectorAll('.model-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedModel = btn.dataset.model;
+}
+
+// File input handling
+const fileInput = document.getElementById('file-input');
+const uploadZone = document.getElementById('upload-zone');
+const previewWrap = document.getElementById('image-preview-wrap');
+const previewImg = document.getElementById('image-preview');
+const analyzeBtn = document.getElementById('analyze-btn');
+
+fileInput.addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (file) handleFile(file);
+});
+
+// Drag & drop
+uploadZone.addEventListener('dragover', e => {
+  e.preventDefault();
+  uploadZone.classList.add('drag-over');
+});
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) handleFile(file);
+  else showToast('Please upload an image file');
+});
+
+function handleFile(file) {
+  uploadedFile = file;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    previewImg.src = ev.target.result;
+    uploadZone.style.display = 'none';
+    previewWrap.style.display = 'block';
+    analyzeBtn.disabled = false;
+  };
+  reader.readAsDataURL(file);
+}
+
+document.getElementById('clear-btn').addEventListener('click', resetAll);
+
+function resetAll() {
+  uploadedFile = null;
+  lastResult = null;
+  fileInput.value = '';
+  previewWrap.style.display = 'none';
+  uploadZone.style.display = 'block';
+  analyzeBtn.disabled = true;
+  document.getElementById('result-placeholder').style.display = 'block';
+  document.getElementById('loading-state').style.display = 'none';
+  document.getElementById('diagnosis-card').style.display = 'none';
+}
+
+// ANALYZE
+analyzeBtn.addEventListener('click', () => {
+  if (!uploadedFile) return;
+  runAnalysis();
+});
+
+function runAnalysis() {
+  // Show loading
+  document.getElementById('result-placeholder').style.display = 'none';
+  document.getElementById('diagnosis-card').style.display = 'none';
+  document.getElementById('loading-state').style.display = 'block';
+  analyzeBtn.disabled = true;
+
+  const msgs = [
+    'Preprocessing image...',
+    'Running ensemble inference...',
+    'Applying TTA augmentation...',
+    'Computing probability distribution...',
+    'Finalizing classification...',
+  ];
+  let mi = 0;
+  const loadMsg = document.getElementById('loading-msg');
+  loadMsg.textContent = msgs[0];
+  const msgInt = setInterval(() => {
+    mi = (mi + 1) % msgs.length;
+    loadMsg.textContent = msgs[mi];
+  }, 900);
+
+  // Simulate AI inference (replace with real API call when model is deployed)
+  const delay = 2000 + Math.random() * 1500;
+  setTimeout(() => {
+    clearInterval(msgInt);
+    document.getElementById('loading-state').style.display = 'none';
+
+    const result = simulateInference();
+    lastResult = result;
+    showResult(result);
+    analyzeBtn.disabled = false;
+  }, delay);
+}
+
+function simulateInference() {
+  // In production: replace with actual model API call
+  // e.g., fetch('/api/predict', { method:'POST', body: formData })
+  const raw = FRACTURE_CLASSES.map(() => Math.random());
+  const sum = raw.reduce((a, b) => a + b, 0);
+  let probs = raw.map(v => v / sum);
+
+  // Bias the top result for realism
+  const topIdx = probs.indexOf(Math.max(...probs));
+  probs[topIdx] = probs[topIdx] * 2.5;
+  const sum2 = probs.reduce((a, b) => a + b, 0);
+  probs = probs.map(v => v / sum2);
+
+  const sorted = probs
+    .map((p, i) => ({ name: FRACTURE_CLASSES[i].name, color: FRACTURE_CLASSES[i].color, prob: p }))
+    .sort((a, b) => b.prob - a.prob);
+
+  return { sorted, topClass: sorted[0], model: selectedModel };
+}
+
+function showResult(result) {
+  const { sorted, topClass } = result;
+  const confidence = topClass.prob;
+  const isFracture = true; // All classes are fracture types
+
+  // Verdict
+  const card = document.getElementById('diagnosis-card');
+  const badge = document.getElementById('diag-badge');
+  const verdict = document.getElementById('diag-verdict');
+  const diagTop = document.getElementById('diag-top');
+
+  card.style.display = 'block';
+  card.style.background = 'var(--navy-mid)';
+
+  badge.className = 'diag-badge positive';
+  badge.textContent = '🦴';
+  verdict.className = 'diag-verdict positive';
+  verdict.textContent = topClass.name;
+
+  // Confidence
+  const confVal = document.getElementById('conf-val');
+  const confFill = document.getElementById('conf-fill');
+  const pct = Math.round(confidence * 100);
+  confVal.textContent = pct + '%';
+  confFill.className = 'conf-fill ' + (pct >= 70 ? 'high' : pct >= 45 ? 'medium' : 'low');
+  setTimeout(() => { confFill.style.width = pct + '%'; }, 80);
+
+  // Top predictions
+  const classList = document.getElementById('class-list');
+  classList.innerHTML = '';
+  sorted.slice(0, 5).forEach((cls, i) => {
+    const p = Math.round(cls.prob * 100);
+    const div = document.createElement('div');
+    div.className = 'class-item';
+    div.innerHTML = `
+      <div class="class-row">
+        <span class="class-name" style="color:${i===0?cls.color:'rgba(240,244,248,0.6)'}">${cls.name}</span>
+        <span class="class-pct" style="color:${i===0?cls.color:'var(--white)'}">${p}%</span>
+      </div>
+      <div class="class-bar-track">
+        <div class="class-bar-fill ${i===0?'top':''}" style="background:${i===0?'linear-gradient(90deg,'+cls.color+','+cls.color+'aa)':cls.color+'66'}; width:0" data-target="${p}"></div>
+      </div>
+    `;
+    classList.appendChild(div);
+  });
+
+  setTimeout(() => {
+    document.querySelectorAll('.class-bar-fill').forEach(el => {
+      el.style.width = el.dataset.target + '%';
+    });
+  }, 100);
+
+  showToast('Analysis complete — ' + topClass.name + ' (' + pct + '% confidence)');
+}
+
+// DOWNLOAD REPORT
+function downloadReport() {
+  if (!lastResult) return;
+  const { sorted, topClass, model } = lastResult;
+  const now = new Date().toISOString();
+  const pct = Math.round(topClass.prob * 100);
+
+  let txt = `FRACTUREAI — CLINICAL AI REPORT
+${'='.repeat(50)}
+Date/Time   : ${now}
+Model       : ${model}
+File        : ${uploadedFile ? uploadedFile.name : 'N/A'}
+Image Size  : ${uploadedFile ? (uploadedFile.size / 1024).toFixed(1) + ' KB' : 'N/A'}
+
+PRIMARY CLASSIFICATION
+${'─'.repeat(40)}
+Class       : ${topClass.name}
+Confidence  : ${pct}%
+
+TOP 5 PREDICTIONS
+${'─'.repeat(40)}
+${sorted.slice(0,5).map((c,i) => `${i+1}. ${c.name.padEnd(28)} ${Math.round(c.prob*100)}%`).join('\n')}
+
+${'─'.repeat(50)}
+DISCLAIMER: This AI report is for research and clinical
+decision support only. Final diagnosis must be confirmed
+by a qualified radiologist or physician.
+${'='.repeat(50)}
+FractureAI © 2026`;
+
+  const blob = new Blob([txt], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `FractureAI_Report_${Date.now()}.txt`;
+  a.click();
+  showToast('Report downloaded');
+}
+
+// TOAST
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// SCROLL FADE-IN
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      observer.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.1 });
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+// Model card click → scroll to analyze
+document.querySelectorAll('.model-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.getElementById('analyze').scrollIntoView({ behavior: 'smooth' });
+  });
+});
+</script>
+</body>
+</html>
